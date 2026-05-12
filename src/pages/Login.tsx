@@ -1,109 +1,89 @@
 import React, { useState } from 'react';
-import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Checkbox, Form, Input, Card, Typography, Select, message, Layout, theme } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
+import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { login } from '../api/auth';
 
 const { Title, Text } = Typography;
-const { Content } = Layout;
 
-export default function Login() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
+const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  
-  const {
-    token: { colorBgContainer },
-  } = theme.useToken();
 
-  const onFinish = (values: any) => {
+  const onFinish = async (values: any) => {
     setLoading(true);
-    
-    // Giả lập độ trễ mạng (API call)
-    setTimeout(() => {
-      console.log('Received values of form: ', values);
-      
-      // Thực hiện đăng nhập thông qua Context
-      login(values.role);
-      
-      message.success(`Đăng nhập thành công với vai trò ${values.role === 'admin' ? 'Quản trị viên' : 'Giáo viên'}`);
-      
-      // Điều hướng dựa trên vai trò
-      if (values.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/teacher');
+    try {
+      const data = await login(values);
+
+      // Lưu token vào localStorage
+      localStorage.setItem('token', data.accessToken);
+      localStorage.setItem('user', JSON.stringify(data));
+
+      message.success(`Chào mừng trở lại, ${data.username}!`);
+
+      // Chuyển hướng sang trang Dashboard (ví dụ dùng window.location)
+      if (data.role === 'ADMIN') {
+        window.location.href = '/admin/dashboard';
+      } else if (data.role === 'USER') {
+        window.location.href = '/teacher/dashboard';
       }
-      
+    } catch (error: any) {
+      message.error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại!');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
-    <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
-      <Content style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <Card 
-          style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-          bordered={false}
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+      background: '#f0f2f5'
+    }}>
+      <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <Title level={2} style={{ color: '#1890ff', margin: 0 }}>VinhUniLab</Title>
+          <Text type="secondary">Hệ thống quản lý phòng máy tập trung</Text>
+        </div>
+
+        <Form
+          name="login_form"
+          initialValues={{ remember: true }}
+          onFinish={onFinish}
+          layout="vertical"
+          size="large"
         >
-          <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <Title level={2} style={{ color: '#1890ff', marginBottom: 0 }}>VinhUniLab</Title>
-            <Text type="secondary">Hệ thống quản lý phòng máy tính</Text>
-          </div>
-
-          <Form
-            name="normal_login"
-            className="login-form"
-            initialValues={{ remember: true, role: 'teacher' }}
-            onFinish={onFinish}
-            size="large"
+          <Form.Item
+            name="username"
+            rules={[{ required: true, message: 'Vui lòng nhập tên đăng nhập!' }]}
           >
-            <Form.Item
-              name="username"
-              rules={[{ required: true, message: 'Vui lòng nhập tên đăng nhập!' }]}
+            <Input prefix={<UserOutlined />} placeholder="Tên đăng nhập" />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
+          >
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder="Mật khẩu"
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              style={{ width: '100%' }}
+              loading={loading}
             >
-              <Input 
-                prefix={<UserOutlined className="site-form-item-icon" />} 
-                placeholder="Tên đăng nhập" 
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="password"
-              rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
-            >
-              <Input.Password
-                prefix={<LockOutlined className="site-form-item-icon" />}
-                type="password"
-                placeholder="Mật khẩu"
-              />
-            </Form.Item>
-
-            <Form.Item name="role" label="Vai trò">
-              <Select>
-                <Select.Option value="teacher">Giáo viên</Select.Option>
-                <Select.Option value="admin">Quản trị viên</Select.Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item>
-              <Form.Item name="remember" valuePropName="checked" noStyle>
-                <Checkbox>Ghi nhớ đăng nhập</Checkbox>
-              </Form.Item>
-
-              <a className="login-form-forgot" href="" style={{ float: 'right' }}>
-                Quên mật khẩu?
-              </a>
-            </Form.Item>
-
-            <Form.Item>
-              <Button type="primary" htmlType="submit" className="login-form-button" block loading={loading}>
-                Đăng nhập
-              </Button>
-            </Form.Item>
-          </Form>
-        </Card>
-      </Content>
-    </Layout>
+              Đăng nhập
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
+    </div>
   );
-}
+};
+
+export default LoginPage;

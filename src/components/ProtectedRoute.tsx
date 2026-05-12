@@ -1,10 +1,10 @@
-import type {ReactNode} from 'react';
+import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  allowedRoles?: ('admin' | 'teacher')[];
+  allowedRoles?: ('ADMIN' | 'TEACHER' | 'TECHNICIAN')[];
 }
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
