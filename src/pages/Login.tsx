@@ -21,9 +21,9 @@ const LoginPage: React.FC = () => {
 
       // Chuyển hướng sang trang Dashboard (ví dụ dùng window.location)
       if (data.role === 'ADMIN') {
-        window.location.href = '/admin/dashboard';
-      } else if (data.role === 'USER') {
-        window.location.href = '/teacher/dashboard';
+        window.location.href = '/admin';
+      } else if (data.role === 'TEACHER') {
+        window.location.href = '/teacher';
       }
     } catch (error: any) {
       message.error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại!');

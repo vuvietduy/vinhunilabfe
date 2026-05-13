@@ -1,0 +1,32 @@
+import type { PageResponse } from '../type/PageResponse';
+import axiosClient from './axiosClient';
+
+export type BookingStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export interface Booking {
+  id: number;
+  roomId: number;
+  roomName?: string;
+  userId: number;
+  userName?: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  purpose: string;
+  status: BookingStatus;
+  createdAt: string;
+}
+
+export const bookingApi = {
+  getAll: () => axiosClient.get<Booking[]>('/bookings/findAll'),
+  getRecent: () => axiosClient.get<PageResponse<Booking>>('/bookings/recent'),
+  getMine: () => axiosClient.get<Booking[]>('/bookings/mine'),
+  create: (data: Partial<Booking>) => axiosClient.post<Booking>('/bookings/create', data),
+  approve: (id: number) => axiosClient.put(`/bookings/approve`, null, { params: { id } }),
+  reject: (id: number) => axiosClient.put(`/bookings/reject`, null, { params: { id } }),
+  cancel: (id: number) => axiosClient.put(`/bookings/cancel`, null, { params: { id } }),
+  delete: (id: number) => axiosClient.delete(`/bookings/delete`, { params: { id } }),
+  getMyBookings: (params: { page: number, size: number, status?: string }) =>
+    axiosClient.get<PageResponse<Booking>>('/bookings/mine', { params }),
+
+};

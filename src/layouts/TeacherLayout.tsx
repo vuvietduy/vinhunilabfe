@@ -76,7 +76,7 @@ const TeacherLayout: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
+      <Sider width={240} collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
         <div className="demo-logo-vertical" />
         <Menu theme="dark" defaultSelectedKeys={['/teacher']} mode="inline" items={items} onClick={handleMenuClick} />
       </Sider>
@@ -90,11 +90,7 @@ const TeacherLayout: React.FC = () => {
             </Space>
           </Dropdown>
         </Header>
-        <Content style={{ margin: '0 16px' }}>
-          <Breadcrumb style={{ margin: '16px 0' }}>
-            <Breadcrumb.Item>Teacher</Breadcrumb.Item>
-            <Breadcrumb.Item>Dashboard</Breadcrumb.Item>
-          </Breadcrumb>
+        <Content style={{ margin: '16px 16px' }}>
           <div
             style={{
               padding: 24,
@@ -103,7 +99,7 @@ const TeacherLayout: React.FC = () => {
               borderRadius: borderRadiusLG,
             }}
           >
-            <Outlet/>
+            <Outlet />
           </div>
         </Content>
         <Footer style={{ textAlign: 'center' }}>

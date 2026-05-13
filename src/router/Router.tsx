@@ -6,16 +6,15 @@ import AdminLayout from '../layouts/AdminLayout';
 import TeacherLayout from '../layouts/TeacherLayout';
 import ProtectedRoute from '../components/ProtectedRoute';
 
-// Admin pages
-import AdminStatistics from '../pages/admin/AdminStatistics';
 import RoomManagement from '../pages/admin/RoomManagement';
-import DeviceManagement from '../pages/admin/DeviceManagement';
-import ReportManagementAdmin from '../pages/admin/ReportManagement';
-
-// Teacher pages
-import TeacherStatistics from '../pages/teacher/TeacherStatistics';
-import BookingManagement from '../pages/teacher/BookingManagement';
-import ReportManagementTeacher from '../pages/teacher/ReportManagement';
+import BookingManagement from '../pages/admin/BookingManagement';
+import ComputerManagement from '../pages/admin/ComputerManagement';
+import UserManagement from '../pages/admin/UserManagement';
+import TeacherDashboard from '../pages/teacher/TeacherDashboard';
+import TeacherBooking from '../pages/teacher/TeacherBooking';
+import IncidentReport from '../pages/teacher/IncidentReport.tsx';
+import IncidentManagement from '../pages/admin/IncidentManagement.tsx';
+import AdminDashboard from '../pages/admin/AdminDashboard.tsx';
 
 export const router = createBrowserRouter([
   {
@@ -34,10 +33,12 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <AdminStatistics /> },
+      { index: true, element: <AdminDashboard /> },
       { path: 'room-management', element: <RoomManagement /> },
-      { path: 'device-management', element: <DeviceManagement /> },
-      { path: 'report-management', element: <ReportManagementAdmin /> },
+      { path: 'computer-management', element: <ComputerManagement /> },
+      { path: 'incident-management', element: <IncidentManagement /> },
+      { path: 'booking-management', element: <BookingManagement /> },
+      { path: 'user-management', element: <UserManagement /> }
     ],
   },
   {
@@ -48,9 +49,9 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <TeacherStatistics /> },
-      { path: 'booking-management', element: <BookingManagement /> },
-      { path: 'report-management', element: <ReportManagementTeacher /> },
+      { index: true, element: <TeacherDashboard /> },
+      { path: 'booking-management', element: <TeacherBooking /> },
+      { path: 'report-management', element: <IncidentReport /> },
     ],
   },
 ]);

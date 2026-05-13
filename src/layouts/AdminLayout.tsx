@@ -34,8 +34,9 @@ function getItem(
 const items: MenuItem[] = [
   getItem('Thống kê', '/admin', <PieChartOutlined />),
   getItem('Quản lý phòng', '/admin/room-management', <DesktopOutlined />),
-  getItem('Quản lý thiết bị', '/admin/device-management', <UserOutlined />),
-  getItem('Quản lý báo cáo sự cố', '/admin/report-management', <FileOutlined />),
+  getItem('Quản lý máy tính', '/admin/computer-management', <UserOutlined />),
+  getItem('Quản lý báo cáo sự cố', '/admin/incident-management', <FileOutlined />),
+  getItem('Quản lý người dùng', '/admin/user-management', <UserOutlined />),
 ];
 
 const AdminLayout: React.FC = () => {
@@ -77,7 +78,7 @@ const AdminLayout: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
+      <Sider width={240} collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
         <div className="demo-logo-vertical" />
         <Menu theme="dark" defaultSelectedKeys={['/admin']} mode="inline" items={items} onClick={handleMenuClick} />
       </Sider>
@@ -91,22 +92,7 @@ const AdminLayout: React.FC = () => {
             </Space>
           </Dropdown>
         </Header>
-        <Content style={{ margin: '0 16px' }}>
-          <Breadcrumb style={{ margin: '16px 0' }}>
-            <Breadcrumb.Item>Admin</Breadcrumb.Item>
-            <Breadcrumb.Item>Dashboard</Breadcrumb.Item>
-          </Breadcrumb>
-          <div
-            style={{
-              padding: 24,
-              minHeight: 360,
-              background: colorBgContainer,
-              borderRadius: borderRadiusLG,
-            }}
-          >
-            <Outlet/>
-          </div>
-        </Content>
+        <Outlet />
         <Footer style={{ textAlign: 'center' }}>
           VinhUniLab ©{new Date().getFullYear()}
         </Footer>
