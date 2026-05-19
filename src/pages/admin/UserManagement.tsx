@@ -49,7 +49,12 @@ const UserManagement: React.FC = () => {
   };
 
   const columns: ColumnsType<User> = [
-    { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
+    {
+      title: 'STT',
+      key: 'index',
+      width: 70,
+      render: (_value, _record, index) => index + 1,
+    },
     {
       title: 'Tên đăng nhập',
       dataIndex: 'username',

@@ -69,6 +69,12 @@ const BookingManagement: React.FC = () => {
 
   const columns: ColumnsType<Booking> = [
     {
+      title: 'STT',
+      key: 'index',
+      width: 70,
+      render: (_value, _record, index) => index + 1,
+    },
+    {
       title: 'Người mượn',
       dataIndex: 'user',
       key: 'user',

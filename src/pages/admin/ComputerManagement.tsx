@@ -34,6 +34,7 @@ const ComputerManagement: React.FC = () => {
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
+      values.room = { id: values.roomId }; // Gán đối tượng phòng cho payload
       if (editingComputer) {
         await computerApi.update(editingComputer.id, values);
         message.success('Cập nhật máy tính thành công');
@@ -54,6 +55,12 @@ const ComputerManagement: React.FC = () => {
   };
 
   const columns: ColumnsType<Computer> = [
+    {
+      title: 'STT',
+      key: 'index',
+      width: 70,
+      render: (_value, _record, index) => index + 1,
+    },
     {
       title: 'Mã máy',
       dataIndex: 'computerCode',

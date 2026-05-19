@@ -1,4 +1,5 @@
 import axiosClient from './axiosClient';
+import type { Room } from './room';
 
 export type ComputerStatus = 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'BROKEN';
 
@@ -8,6 +9,7 @@ export interface Computer {
   status: ComputerStatus;
   roomId: number;
   roomName?: string; // Dùng để hiển thị tên phòng trên bảng
+  room?: Room;
   specs?: string;
 }
 

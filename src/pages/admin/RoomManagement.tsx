@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Modal, Form, Input, InputNumber, Space, Popconfirm, message, Card, Tag } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
@@ -6,6 +6,7 @@ import { roomApi, type Room } from '../../api/room';
 
 const RoomManagement: React.FC = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [filter, setFilter] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
@@ -27,6 +28,26 @@ const RoomManagement: React.FC = () => {
   useEffect(() => {
     fetchRooms();
   }, []);
+
+  const filteredRooms = useMemo(() => {
+    const keys = Object.keys(filter) as Array<keyof Room | 'isActive'>;
+    return rooms.filter(room => {
+      return keys.every(key => {
+        const value = filter[key];
+        if (!value) return true;
+        const terms = value.split(';').map(term => term.trim()).filter(Boolean);
+        if (!terms.length) return true;
+
+        let fieldValue = '';
+        if (key === 'isActive') {
+          fieldValue = room.isActive ? 'Hoạt động' : 'Bảo trì';
+        } else {
+          fieldValue = String((room as any)[key] ?? '');
+        }
+        return terms.some(term => fieldValue.toLowerCase().includes(term.toLowerCase()));
+      });
+    });
+  }, [rooms, filter]);
 
   const showAddModal = () => {
     setEditingRoom(null);
@@ -70,7 +91,13 @@ const RoomManagement: React.FC = () => {
   };
 
   const columns: ColumnsType<Room> = [
-    { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
+    {
+      title: 'STT',
+      key: 'index',
+      width: 70,
+      render: (_value, _record, index) => index + 1,
+    },
+    { title: 'Mã phòng', dataIndex: 'roomCode', key: 'roomCode', width: 100 },
     { title: 'Tên phòng', dataIndex: 'roomName', key: 'roomName', sorter: (a, b) => a.roomName.localeCompare(b.roomName) },
     { title: 'Vị trí', dataIndex: 'location', key: 'location' },
     { title: 'Số máy', dataIndex: 'totalSeats', key: 'totalSeats', sorter: (a, b) => a.totalSeats - b.totalSeats },
@@ -124,6 +151,9 @@ const RoomManagement: React.FC = () => {
         cancelText="Hủy"
       >
         <Form form={form} layout="vertical" initialValues={{ isActive: true, totalSeats: 20 }}>
+          <Form.Item name="roomCode" label="Mã phòng" rules={[{ required: true, message: 'Nhập mã phòng!' }]}>
+            <Input placeholder="Ví dụ: Lab 101" />
+          </Form.Item>
           <Form.Item name="roomName" label="Tên phòng" rules={[{ required: true, message: 'Nhập tên phòng!' }]}>
             <Input placeholder="Ví dụ: Lab 101" />
           </Form.Item>

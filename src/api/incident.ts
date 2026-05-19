@@ -24,13 +24,13 @@ export const incidentApi = {
   getMyIncidents: (page: number, size: number) =>
     axiosClient.get<PageResponse<Incident>>(`/incident-reports/my`, { params: { page, size } }),
 
-  search: (params: { page: number, size: number, status?: string, roomId?: number }) =>
+  search: (params: {  filter: string, page: number, size: number, sort?: string[] }) =>
     axiosClient.get<PageResponse<Incident>>('/incident-reports/search', { params }),
 
   // Cập nhật trạng thái sự cố (Ví dụ: Chuyển từ OPEN -> IN_PROGRESS)
   updateStatus: (id: number, status: IncidentStatus) =>
-    axiosClient.patch(`/incident-reports/${id}/status`, { status }),
+    axiosClient.patch(`/incident-reports/status`, { id, status }),
 
   // Xóa báo cáo sai hoặc báo cáo rác
-  delete: (id: number) => axiosClient.delete(`/incident-reports/${id}`),
+  delete: (id: number) => axiosClient.delete(`/incident-reports/delete?id=${id}`),
 };

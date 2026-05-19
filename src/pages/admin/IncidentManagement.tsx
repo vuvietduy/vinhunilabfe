@@ -27,9 +27,10 @@ const IncidentManagement: React.FC = () => {
     setLoading(true);
     try {
       const res = await incidentApi.search({
+        filter: "id!=0",
         page: page - 1,
         size: pagination.pageSize,
-        status
+        sort: ["id,desc"],
       });
       setData(res.data.content);
       setPagination(prev => ({ ...prev, current: page, total: res.data.totalElements }));
@@ -65,7 +66,6 @@ const IncidentManagement: React.FC = () => {
     { value: 'OPEN', label: 'Mới tiếp nhận', color: 'magenta' },
     { value: 'IN_PROGRESS', label: 'Đang sửa chữa', color: 'processing' },
     { value: 'RESOLVED', label: 'Đã khắc phục', color: 'success' },
-    { value: 'CLOSED', label: 'Đã đóng', color: 'default' },
   ];
 
   const columns = [

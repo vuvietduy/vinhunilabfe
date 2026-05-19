@@ -9,7 +9,7 @@ import {
   ProfileOutlined
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
-import { Breadcrumb, Layout, Menu, theme, Dropdown, Avatar, Space, message } from 'antd';
+import { Layout, Menu, theme, Dropdown, Avatar, Space, message } from 'antd';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
@@ -35,6 +35,7 @@ const items: MenuItem[] = [
   getItem('Thống kê', '/admin', <PieChartOutlined />),
   getItem('Quản lý phòng', '/admin/room-management', <DesktopOutlined />),
   getItem('Quản lý máy tính', '/admin/computer-management', <UserOutlined />),
+  getItem('Quản lý đặt phòng', '/admin/booking-management', <UserOutlined />),
   getItem('Quản lý báo cáo sự cố', '/admin/incident-management', <FileOutlined />),
   getItem('Quản lý người dùng', '/admin/user-management', <UserOutlined />),
 ];
