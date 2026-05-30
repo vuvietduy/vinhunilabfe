@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Modal, Form, Input, InputNumber, Space, Popconfirm, message, Card, Tag } from 'antd';
+import { Table, Button, Modal, Form, Input, InputNumber, Space, Popconfirm, message, Card, Tag, Checkbox } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { roomApi, type Room } from '../../api/room';
@@ -162,6 +162,9 @@ const RoomManagement: React.FC = () => {
           </Form.Item>
           <Form.Item name="totalSeats" label="Số lượng máy">
             <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="isActive" label="Trạng thái" valuePropName="checked">
+            <Checkbox>Hoạt động</Checkbox>
           </Form.Item>
         </Form>
       </Modal>
