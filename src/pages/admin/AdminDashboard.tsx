@@ -108,7 +108,7 @@ const AdminDashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} loading={loading}>
             <Statistic
-              title="Số phòng máy"
+              title="Số phòng máy hoạt động"
               value={stats?.totalRooms}
               prefix={<HomeOutlined style={{ color: '#722ed1' }} />}
             />
