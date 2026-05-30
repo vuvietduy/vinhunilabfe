@@ -4,6 +4,7 @@ import Home from '../pages/Home';
 import Login from '../pages/Login';
 import AdminLayout from '../layouts/AdminLayout';
 import TeacherLayout from '../layouts/TeacherLayout';
+import TechnicianLayout from '../layouts/TechnicianLayout';
 import ProtectedRoute from '../components/ProtectedRoute';
 
 import RoomManagement from '../pages/admin/RoomManagement';
@@ -15,6 +16,8 @@ import TeacherBooking from '../pages/teacher/TeacherBooking';
 import IncidentReport from '../pages/teacher/IncidentReport.tsx';
 import IncidentManagement from '../pages/admin/IncidentManagement.tsx';
 import AdminDashboard from '../pages/admin/AdminDashboard.tsx';
+import AssignedIncidents from '../pages/technician/AssignedIncidents.tsx';
+import TechnicianDashboard from '../pages/technician/TechnicianDashboard.tsx';
 
 export const router = createBrowserRouter([
   {
@@ -52,6 +55,18 @@ export const router = createBrowserRouter([
       { index: true, element: <TeacherDashboard /> },
       { path: 'booking-management', element: <TeacherBooking /> },
       { path: 'report-management', element: <IncidentReport /> },
+    ],
+  },
+  {
+    path: '/technician',
+    element: (
+      <ProtectedRoute allowedRoles={['TECHNICIAN']}>
+        <TechnicianLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <TechnicianDashboard /> },
+      { path: 'assigned-incidents', element: <AssignedIncidents /> },
     ],
   },
 ]);

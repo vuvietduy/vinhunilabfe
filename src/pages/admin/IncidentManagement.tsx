@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Table, Tag, Select, Button, Space, Card, Typography, message, Popconfirm, Tooltip } from 'antd';
-import { CheckCircleOutlined, SyncOutlined, DeleteOutlined, AlertOutlined } from '@ant-design/icons';
-import { incidentApi } from '../../api/incident';
-import { type Incident, type IncidentStatus, type Priority } from '../../api/incident';
+import React, { useEffect, useState } from 'react';
+import { Table, Tag, Select, Button, Space, Card, message, Popconfirm, Tooltip } from 'antd';
+import { AlertOutlined, CheckCircleOutlined, DeleteOutlined, UserSwitchOutlined } from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+import { incidentApi, type Incident, type IncidentStatus, type Priority } from '../../api/incident';
 import { roomApi, type Room } from '../../api/room';
-
-const { Title } = Typography;
+import { userApi, type User } from '../../api/user';
 
 const IncidentManagement: React.FC = () => {
   const [data, setData] = useState<Incident[]>([]);
@@ -13,13 +12,23 @@ const IncidentManagement: React.FC = () => {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
   const [filterStatus, setFilterStatus] = useState<string | undefined>(undefined);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [technicians, setTechnicians] = useState<User[]>([]);
 
   const fetchRooms = async () => {
     try {
-      const res = await roomApi.getAll(); // Giả sử có API này để lấy danh sách phòng
+      const res = await roomApi.getAll();
       setRooms(res.data);
     } catch (error) {
-      message.error("Không thể tải danh sách phòng");
+      message.error('Không thể tải danh sách phòng');
+    }
+  };
+
+  const fetchTechnicians = async () => {
+    try {
+      const res = await userApi.getAll();
+      setTechnicians(res.data.filter(user => user.role === 'TECHNICIAN'));
+    } catch (error) {
+      message.error('Không thể tải danh sách kỹ thuật viên');
     }
   };
 
@@ -27,15 +36,15 @@ const IncidentManagement: React.FC = () => {
     setLoading(true);
     try {
       const res = await incidentApi.search({
-        filter: "id!=0",
+        filter: status ? `status=='${status}'` : 'id!=0',
         page: page - 1,
         size: pagination.pageSize,
-        sort: ["id,desc"],
+        sort: ['id,desc'],
       });
       setData(res.data.content);
       setPagination(prev => ({ ...prev, current: page, total: res.data.totalElements }));
     } catch (error) {
-      message.error("Lỗi tải danh sách sự cố");
+      message.error('Lỗi tải danh sách sự cố');
     } finally {
       setLoading(false);
     }
@@ -44,76 +53,117 @@ const IncidentManagement: React.FC = () => {
   useEffect(() => {
     fetchIncidents();
     fetchRooms();
+    fetchTechnicians();
   }, []);
 
   const handleStatusChange = async (id: number, newStatus: IncidentStatus) => {
     try {
       await incidentApi.updateStatus(id, newStatus);
-      message.success("Đã cập nhật trạng thái sự cố");
+      message.success('Đã cập nhật trạng thái sự cố');
       fetchIncidents(pagination.current);
     } catch (error) {
-      message.error("Cập nhật thất bại");
+      message.error('Cập nhật thất bại');
     }
   };
 
-  const priorityMap: Record<Priority, { color: string, label: string }> = {
+  const handleAssignTechnician = async (id: number, technicianId: number) => {
+    try {
+      await incidentApi.assignTechnician(id, technicianId);
+      message.success('Đã gán kỹ thuật viên xử lý sự cố');
+      fetchIncidents(pagination.current);
+    } catch (error) {
+      message.error('Gán kỹ thuật viên thất bại');
+    }
+  };
+
+  const priorityMap: Record<Priority, { color: string; label: string }> = {
     LOW: { color: 'blue', label: 'Thấp' },
     NORMAL: { color: 'orange', label: 'Trung bình' },
     HIGH: { color: 'red', label: 'Khẩn cấp' },
   };
 
-  const statusOptions = [
+  const statusOptions: { value: IncidentStatus; label: string; color: string }[] = [
     { value: 'OPEN', label: 'Mới tiếp nhận', color: 'magenta' },
     { value: 'IN_PROGRESS', label: 'Đang sửa chữa', color: 'processing' },
     { value: 'RESOLVED', label: 'Đã khắc phục', color: 'success' },
   ];
 
-  const columns = [
+  const columns: ColumnsType<Incident> = [
     {
       title: 'Mức độ',
       dataIndex: 'priority',
       key: 'priority',
       width: 120,
-      render: (s: Priority) => (
-        <Tag color={priorityMap[s].color} style={{ fontWeight: 'bold' }}>
-          {priorityMap[s].label}
+      render: (priority: Priority) => (
+        <Tag color={priorityMap[priority].color} style={{ fontWeight: 'bold' }}>
+          {priorityMap[priority].label}
         </Tag>
       ),
     },
     {
       title: 'Phòng',
       dataIndex: 'computer',
-      key: 'computer',
-      render: (c: any) => {
-        const room = rooms.find(r => r.id === c?.roomId);
+      key: 'room',
+      render: (computer: { roomId?: number }) => {
+        const room = rooms.find(item => item.id === computer?.roomId);
         return room ? room.roomName : '-';
-      }
+      },
     },
     {
       title: 'Mã máy',
       dataIndex: 'computer',
       key: 'computer',
-      render: (c: any) => c ? <b>{c.computerCode}</b> : '-'
+      render: (computer: { computerCode?: string }) => (
+        computer?.computerCode ? <b>{computer.computerCode}</b> : '-'
+      ),
     },
-    { title: 'Nội dung sự cố', dataIndex: 'description', key: 'description', ellipsis: true },
+    {
+      title: 'Nội dung sự cố',
+      dataIndex: 'description',
+      key: 'description',
+      ellipsis: true,
+    },
     {
       title: 'Người báo',
       dataIndex: 'reportedBy',
       key: 'reportedBy',
-      render: (reportedBy: any) => reportedBy?.fullName || '-'
+      render: (reportedBy: { fullName?: string } | string) => (
+        typeof reportedBy === 'string' ? reportedBy : reportedBy?.fullName || '-'
+      ),
+    },
+    {
+      title: 'Kỹ thuật viên',
+      dataIndex: 'technician',
+      key: 'technician',
+      width: 220,
+      render: (technician: User | null | undefined, record) => (
+        <Select
+          placeholder="Chọn kỹ thuật viên"
+          value={technician?.id}
+          style={{ width: 200 }}
+          showSearch
+          optionFilterProp="label"
+          suffixIcon={<UserSwitchOutlined />}
+          onChange={technicianId => handleAssignTechnician(record.id, technicianId)}
+          options={technicians.map(technician => ({
+            value: technician.id,
+            label: technician.fullName || technician.username,
+          }))}
+        />
+      ),
     },
     {
       title: 'Trạng thái xử lý',
       dataIndex: 'status',
       key: 'status',
-      render: (status: IncidentStatus, record: Incident) => (
+      render: (status: IncidentStatus, record) => (
         <Select
           value={status}
           style={{ width: 150 }}
-          onChange={(val) => handleStatusChange(record.id, val)}
-          options={statusOptions.map(opt => ({
-            value: opt.value,
-            label: <Tag color={opt.color}>{opt.label}</Tag>
+          onChange={newStatus => handleStatusChange(record.id, newStatus)}
+          options={statusOptions.map(option => ({
+            value: option.value,
+            label: <Tag color={option.color}>{option.label}</Tag>,
           }))}
         />
       ),
@@ -121,7 +171,7 @@ const IncidentManagement: React.FC = () => {
     {
       title: 'Thao tác',
       key: 'action',
-      render: (_: any, record: Incident) => (
+      render: (_, record) => (
         <Space>
           <Tooltip title="Đánh dấu đã xong nhanh">
             <Button
@@ -130,7 +180,10 @@ const IncidentManagement: React.FC = () => {
               onClick={() => handleStatusChange(record.id, 'RESOLVED')}
             />
           </Tooltip>
-          <Popconfirm title="Xóa báo cáo này?" onConfirm={() => incidentApi.delete(record.id).then(() => fetchIncidents())}>
+          <Popconfirm
+            title="Xóa báo cáo này?"
+            onConfirm={() => incidentApi.delete(record.id).then(() => fetchIncidents())}
+          >
             <Button type="text" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -147,7 +200,10 @@ const IncidentManagement: React.FC = () => {
           placeholder="Lọc theo trạng thái"
           allowClear
           style={{ width: 200 }}
-          onChange={(val) => { setFilterStatus(val); fetchIncidents(1, val); }}
+          onChange={value => {
+            setFilterStatus(value);
+            fetchIncidents(1, value);
+          }}
           options={statusOptions}
         />
       }
@@ -159,7 +215,7 @@ const IncidentManagement: React.FC = () => {
         loading={loading}
         pagination={{
           ...pagination,
-          onChange: (page) => fetchIncidents(page)
+          onChange: page => fetchIncidents(page),
         }}
       />
     </Card>

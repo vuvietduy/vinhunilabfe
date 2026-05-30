@@ -24,6 +24,8 @@ const LoginPage: React.FC = () => {
         window.location.href = '/admin';
       } else if (data.role === 'TEACHER') {
         window.location.href = '/teacher';
+      } else if (data.role === 'TECHNICIAN') {
+        window.location.href = '/technician';
       }
     } catch (error: any) {
       message.error(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại!');
