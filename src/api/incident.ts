@@ -1,6 +1,7 @@
 import type { PageResponse } from '../type/PageResponse';
 import type { User } from './user';
 import axiosClient from './axiosClient';
+import type { Computer } from './computer';
 
 export type IncidentStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 export type Priority = 'LOW' | 'NORMAL' | 'HIGH';
@@ -8,14 +9,15 @@ export type Priority = 'LOW' | 'NORMAL' | 'HIGH';
 export interface Incident {
   id: number;
   computerId: number;
-  computerCode: string;
+  computer: Computer;
   roomName: string;
   description: string;
   priority: Priority;
   status: IncidentStatus;
-  reportedBy: string;
+  reportedBy: User;
   assignedTo?: User | null;
   createdAt: string;
+  resolvedAt?: string | null;
 }
 
 export const incidentApi = {
@@ -29,7 +31,7 @@ export const incidentApi = {
   getAssignedToMe: (page: number, size: number) =>
     axiosClient.get<PageResponse<Incident>>(`/incident-reports/assigned-to-me`, { params: { page, size } }),
 
-  search: (params: {  filter: string, page: number, size: number, sort?: string[] }) =>
+  search: (params: { filter: string, page: number, size: number, sort?: string[] }) =>
     axiosClient.get<PageResponse<Incident>>('/incident-reports/search', { params }),
 
   // Cập nhật trạng thái sự cố (Ví dụ: Chuyển từ OPEN -> IN_PROGRESS)

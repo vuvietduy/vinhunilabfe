@@ -7,6 +7,10 @@ import { roomApi, type Room } from '../../api/room';
 
 const ComputerManagement: React.FC = () => {
   const [computers, setComputers] = useState<Computer[]>([]);
+  const [page, setPage] = useState(0);
+  const [filter, setFilter] = useState("id!=0");
+  const [size, setSize] = useState(10);
+  const [total, setTotal] = useState(0);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,10 +21,11 @@ const ComputerManagement: React.FC = () => {
     setLoading(true);
     try {
       const [compRes, roomRes] = await Promise.all([
-        computerApi.getAll(),
+        computerApi.search({ filter, page: page, size, sort: ['id,desc'] }),
         roomApi.getAll()
       ]);
-      setComputers(compRes.data);
+      setComputers(compRes.data.content);
+      setTotal(compRes.data.totalElements);
       setRooms(roomRes.data);
     } catch (error) {
       message.error('Lỗi khi tải dữ liệu');
@@ -29,7 +34,7 @@ const ComputerManagement: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [size, page, filter]);
 
   const handleOk = async () => {
     try {
@@ -59,13 +64,13 @@ const ComputerManagement: React.FC = () => {
       title: 'STT',
       key: 'index',
       width: 70,
-      render: (_value, _record, index) => index + 1,
+      render: (_value, _record, index) => (page * size) + index + 1,
     },
     {
       title: 'Mã máy',
       dataIndex: 'computerCode',
       key: 'computerCode',
-      render: (text) => <b>{text}</b>
+      render: (text) => <b>{text}</b>,
     },
     {
       title: 'Phòng máy',
@@ -107,7 +112,21 @@ const ComputerManagement: React.FC = () => {
       title={<span><DesktopOutlined /> Quản lý máy tính</span>}
       extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingComputer(null); form.resetFields(); setIsModalOpen(true); }}>Thêm máy</Button>}
     >
-      <Table columns={columns} dataSource={computers} rowKey="id" loading={loading} />
+      <Table
+        columns={columns}
+        dataSource={computers}
+        rowKey="id"
+        loading={loading}
+        pagination={{
+          current: page + 1,
+          pageSize: size,
+          total,
+          onChange: (page, pageSize) => {
+            setPage(page - 1);
+            setSize(pageSize);
+          },
+        }}
+      />
 
       <Modal
         title={editingComputer ? "Sửa máy tính" : "Thêm máy tính mới"}

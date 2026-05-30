@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Select, Button, Space, Card, message, Popconfirm, Tooltip } from 'antd';
-import { AlertOutlined, CheckCircleOutlined, DeleteOutlined, UserSwitchOutlined } from '@ant-design/icons';
+import { Table, Tag, Select, Button, Space, Card, message, Popconfirm, Tooltip, Modal, Descriptions } from 'antd';
+import { AlertOutlined, CheckCircleOutlined, DeleteOutlined, EyeOutlined, UserSwitchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { incidentApi, type Incident, type IncidentStatus, type Priority } from '../../api/incident';
 import { roomApi, type Room } from '../../api/room';
@@ -9,16 +9,20 @@ import { userApi, type User } from '../../api/user';
 const IncidentManagement: React.FC = () => {
   const [data, setData] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
-  const [filterStatus, setFilterStatus] = useState<string | undefined>(undefined);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [technicians, setTechnicians] = useState<User[]>([]);
+  const [page, setPage] = useState(0);
+  const [filter] = useState("id!=0");
+  const [size, setSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   const fetchRooms = async () => {
     try {
       const res = await roomApi.getAll();
       setRooms(res.data);
-    } catch (error) {
+    } catch {
       message.error('Không thể tải danh sách phòng');
     }
   };
@@ -27,23 +31,23 @@ const IncidentManagement: React.FC = () => {
     try {
       const res = await userApi.getAll();
       setTechnicians(res.data.filter(user => user.role === 'TECHNICIAN'));
-    } catch (error) {
+    } catch {
       message.error('Không thể tải danh sách kỹ thuật viên');
     }
   };
 
-  const fetchIncidents = async (page = 1, status = filterStatus) => {
+  const fetchIncidents = async () => {
     setLoading(true);
     try {
       const res = await incidentApi.search({
-        filter: status ? `status=='${status}'` : 'id!=0',
-        page: page - 1,
-        size: pagination.pageSize,
+        filter: filter,
+        page: page,
+        size: size,
         sort: ['id,desc'],
       });
       setData(res.data.content);
-      setPagination(prev => ({ ...prev, current: page, total: res.data.totalElements }));
-    } catch (error) {
+      setTotal(res.data.totalElements);
+    } catch {
       message.error('Lỗi tải danh sách sự cố');
     } finally {
       setLoading(false);
@@ -52,6 +56,9 @@ const IncidentManagement: React.FC = () => {
 
   useEffect(() => {
     fetchIncidents();
+  }, [page, size, filter]);
+
+  useEffect(() => {
     fetchRooms();
     fetchTechnicians();
   }, []);
@@ -60,8 +67,7 @@ const IncidentManagement: React.FC = () => {
     try {
       await incidentApi.updateStatus(id, newStatus);
       message.success('Đã cập nhật trạng thái sự cố');
-      fetchIncidents(pagination.current);
-    } catch (error) {
+    } catch {
       message.error('Cập nhật thất bại');
     }
   };
@@ -70,10 +76,14 @@ const IncidentManagement: React.FC = () => {
     try {
       await incidentApi.assignTechnician(id, technicianId);
       message.success('Đã gán kỹ thuật viên xử lý sự cố');
-      fetchIncidents(pagination.current);
-    } catch (error) {
+    } catch {
       message.error('Gán kỹ thuật viên thất bại');
     }
+  };
+
+  const handleViewIncident = (incident: Incident) => {
+    setSelectedIncident(incident);
+    setIsDetailModalOpen(true);
   };
 
   const priorityMap: Record<Priority, { color: string; label: string }> = {
@@ -88,7 +98,32 @@ const IncidentManagement: React.FC = () => {
     { value: 'RESOLVED', label: 'Đã khắc phục', color: 'success' },
   ];
 
+  const getRoomName = (incident: Incident) => {
+    const room = rooms.find(item => item.id === incident.computer?.roomId);
+    return room?.roomName || incident.roomName || '-';
+  };
+
+  const getReporterName = (reportedBy: Incident['reportedBy'] | string | undefined) => {
+    if (!reportedBy) return '-';
+    return typeof reportedBy === 'string' ? reportedBy : reportedBy.fullName || reportedBy.username || '-';
+  };
+
+  const getTechnicianName = (incident: Incident) => {
+    const technician = (incident as Incident & { technician?: User | null }).technician || incident.assignedTo;
+    return technician?.fullName || technician?.username || '-';
+  };
+
+  const getStatusOption = (status: IncidentStatus) => (
+    statusOptions.find(option => option.value === status)
+  );
+
   const columns: ColumnsType<Incident> = [
+    {
+      title: 'STT',
+      key: 'index',
+      width: 70,
+      render: (_value, _record, index) => (page * size) + index + 1,
+    },
     {
       title: 'Mức độ',
       dataIndex: 'priority',
@@ -108,6 +143,12 @@ const IncidentManagement: React.FC = () => {
         const room = rooms.find(item => item.id === computer?.roomId);
         return room ? room.roomName : '-';
       },
+      filters: rooms.map(room => ({ text: room.roomName, value: room.roomName })),
+      filterSearch: true,
+      onFilter: (value, record) => {
+        const room = rooms.find(item => item.id === record.computer?.roomId);
+        return room ? room.roomName.includes(value as string) : false;
+      }
     },
     {
       title: 'Mã máy',
@@ -118,18 +159,18 @@ const IncidentManagement: React.FC = () => {
       ),
     },
     {
-      title: 'Nội dung sự cố',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
-    },
-    {
       title: 'Người báo',
       dataIndex: 'reportedBy',
       key: 'reportedBy',
       render: (reportedBy: { fullName?: string } | string) => (
         typeof reportedBy === 'string' ? reportedBy : reportedBy?.fullName || '-'
       ),
+    },
+    {
+      title: 'Ngày báo',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (createdAt: string) => new Date(createdAt).toLocaleString(),
     },
     {
       title: 'Kỹ thuật viên',
@@ -169,10 +210,26 @@ const IncidentManagement: React.FC = () => {
       ),
     },
     {
+      title: 'Thời gian khắc phục',
+      dataIndex: 'resolvedAt',
+      key: 'resolvedAt',
+      render: (resolvedAt: string | null) => {
+        if (!resolvedAt) return '-';
+        return new Date(resolvedAt).toLocaleString();
+      },
+    },
+    {
       title: 'Thao tác',
       key: 'action',
       render: (_, record) => (
         <Space>
+          <Tooltip title="Xem chi tiết">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              onClick={() => handleViewIncident(record)}
+            />
+          </Tooltip>
           <Tooltip title="Đánh dấu đã xong nhanh">
             <Button
               type="text"
@@ -195,18 +252,6 @@ const IncidentManagement: React.FC = () => {
     <Card
       style={{ margin: '16px 16px' }}
       title={<span><AlertOutlined /> Quản lý danh sách sự cố hệ thống</span>}
-      extra={
-        <Select
-          placeholder="Lọc theo trạng thái"
-          allowClear
-          style={{ width: 200 }}
-          onChange={value => {
-            setFilterStatus(value);
-            fetchIncidents(1, value);
-          }}
-          options={statusOptions}
-        />
-      }
     >
       <Table
         columns={columns}
@@ -214,12 +259,65 @@ const IncidentManagement: React.FC = () => {
         rowKey="id"
         loading={loading}
         pagination={{
-          ...pagination,
-          onChange: page => fetchIncidents(page),
+          current: page + 1,
+          pageSize: size,
+          total,
+          onChange: (page, pageSize) => {
+            setPage(page - 1);
+            setSize(pageSize);
+          },
         }}
       />
+
+      <Modal
+        title="Chi tiết sự cố"
+        open={isDetailModalOpen}
+        onCancel={() => setIsDetailModalOpen(false)}
+        footer={null}
+        width={720}
+      >
+        {selectedIncident && (
+          <Descriptions bordered column={1} size="small">
+            <Descriptions.Item label="Mức độ">
+              <Tag color={priorityMap[selectedIncident.priority].color}>
+                {priorityMap[selectedIncident.priority].label}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Trạng thái">
+              {(() => {
+                const statusOption = getStatusOption(selectedIncident.status);
+                return statusOption ? (
+                  <Tag color={statusOption.color}>{statusOption.label}</Tag>
+                ) : selectedIncident.status;
+              })()}
+            </Descriptions.Item>
+            <Descriptions.Item label="Phòng">
+              {getRoomName(selectedIncident)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Mã máy">
+              {selectedIncident.computer?.computerCode || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Người báo">
+              {getReporterName(selectedIncident.reportedBy)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Ngày báo">
+              {selectedIncident.createdAt ? new Date(selectedIncident.createdAt).toLocaleString() : '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Kỹ thuật viên">
+              {getTechnicianName(selectedIncident)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Nội dung sự cố">
+              {selectedIncident.description || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Thời gian khắc phục">
+              {selectedIncident.resolvedAt ? new Date(selectedIncident.resolvedAt).toLocaleString() : '-'}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
     </Card>
   );
 };
 
 export default IncidentManagement;
+

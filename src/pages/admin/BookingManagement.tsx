@@ -21,16 +21,22 @@ const BookingManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const [page, setPage] = useState(0);
+  const [filter, setFilter] = useState("id!=0");
+  const [size, setSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [sort, setSort] = useState(["id,desc"]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [bookRes, roomRes] = await Promise.all([
-        bookingApi.getAll(),
+        bookingApi.search({ filter, page: page, size, sort }),
         roomApi.getAll()
       ]);
-      setBookings(bookRes.data);
+      setBookings(bookRes.data.content);
       setRooms(roomRes.data);
+      setTotal(bookRes.data.totalElements);
     } catch (error) {
       message.error('Lỗi tải dữ liệu mượn phòng');
     } finally {
@@ -38,7 +44,7 @@ const BookingManagement: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [page, size, filter, sort]);
 
   const handleCreateBooking = async (values: any) => {
     try {
@@ -72,7 +78,7 @@ const BookingManagement: React.FC = () => {
       title: 'STT',
       key: 'index',
       width: 70,
-      render: (_value, _record, index) => index + 1,
+      render: (_value, _record, index) => (page * size) + index + 1,
     },
     {
       title: 'Người mượn',
@@ -138,7 +144,21 @@ const BookingManagement: React.FC = () => {
       title="Danh sách đăng ký mượn phòng"
       extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>Đăng ký mượn</Button>}
     >
-      <Table columns={columns} dataSource={bookings} rowKey="id" loading={loading} />
+      <Table
+        columns={columns}
+        dataSource={bookings}
+        rowKey="id"
+        loading={loading}
+        pagination={{
+          current: page + 1,
+          pageSize: size,
+          total,
+          onChange: (page, pageSize) => {
+            setPage(page - 1);
+            setSize(pageSize);
+          },
+        }}
+      />
 
       <Modal title="Đăng ký mượn phòng máy" open={isModalOpen} onOk={() => form.submit()} onCancel={() => setIsModalOpen(false)}>
         <Form form={form} layout="vertical" onFinish={handleCreateBooking}>

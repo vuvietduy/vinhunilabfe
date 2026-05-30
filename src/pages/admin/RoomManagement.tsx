@@ -1,12 +1,24 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, InputNumber, Space, Popconfirm, message, Card, Tag, Checkbox } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { roomApi, type Room } from '../../api/room';
 
+const buildRoomFilter = (keyword: string) => {
+  const value = keyword.trim();
+  if (!value) return 'id!=0';
+
+  const escapedValue = value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return `(roomName=='*${escapedValue}*',roomCode=='*${escapedValue}*')`;
+};
+
 const RoomManagement: React.FC = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [filter, setFilter] = useState<Record<string, string>>({});
+  const [page, setPage] = useState(0);
+  const [filter, setFilter] = useState("id!=0");
+  const [searchText, setSearchText] = useState('');
+  const [size, setSize] = useState(10);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
@@ -16,9 +28,10 @@ const RoomManagement: React.FC = () => {
   const fetchRooms = async () => {
     setLoading(true);
     try {
-      const response = await roomApi.getAll();
-      setRooms(response.data);
-    } catch (error) {
+      const response = await roomApi.search({ filter, page: page, size, sort: ['id,desc'] });
+      setRooms(response.data.content);
+      setTotal(response.data.totalElements);
+    } catch {
       message.error('Không thể tải danh sách phòng máy');
     } finally {
       setLoading(false);
@@ -27,27 +40,7 @@ const RoomManagement: React.FC = () => {
 
   useEffect(() => {
     fetchRooms();
-  }, []);
-
-  const filteredRooms = useMemo(() => {
-    const keys = Object.keys(filter) as Array<keyof Room | 'isActive'>;
-    return rooms.filter(room => {
-      return keys.every(key => {
-        const value = filter[key];
-        if (!value) return true;
-        const terms = value.split(';').map(term => term.trim()).filter(Boolean);
-        if (!terms.length) return true;
-
-        let fieldValue = '';
-        if (key === 'isActive') {
-          fieldValue = room.isActive ? 'Hoạt động' : 'Bảo trì';
-        } else {
-          fieldValue = String((room as any)[key] ?? '');
-        }
-        return terms.some(term => fieldValue.toLowerCase().includes(term.toLowerCase()));
-      });
-    });
-  }, [rooms, filter]);
+  }, [size, page, filter]);
 
   const showAddModal = () => {
     setEditingRoom(null);
@@ -85,9 +78,14 @@ const RoomManagement: React.FC = () => {
       await roomApi.delete(id);
       message.success('Đã xóa phòng');
       fetchRooms();
-    } catch (error) {
+    } catch {
       message.error('Xóa thất bại');
     }
+  };
+
+  const handleSearch = (value: string) => {
+    setPage(0);
+    setFilter(buildRoomFilter(value));
   };
 
   const columns: ColumnsType<Room> = [
@@ -95,12 +93,19 @@ const RoomManagement: React.FC = () => {
       title: 'STT',
       key: 'index',
       width: 70,
-      render: (_value, _record, index) => index + 1,
+      render: (_value, _record, index) => (page * size) + index + 1,
     },
     { title: 'Mã phòng', dataIndex: 'roomCode', key: 'roomCode', width: 100 },
     { title: 'Tên phòng', dataIndex: 'roomName', key: 'roomName', sorter: (a, b) => a.roomName.localeCompare(b.roomName) },
     { title: 'Vị trí', dataIndex: 'location', key: 'location' },
-    { title: 'Số máy', dataIndex: 'totalSeats', key: 'totalSeats', sorter: (a, b) => a.totalSeats - b.totalSeats },
+    { title: 'Số ghế', dataIndex: 'totalSeats', key: 'totalSeats', sorter: (a, b) => a.totalSeats - b.totalSeats },
+    {
+      title: "Số máy",
+      key: "computerCount",
+      render: (_, record) => (
+        <Tag color="blue">{record.computers.length}</Tag>
+      )
+    },
     {
       title: 'Trạng thái',
       dataIndex: 'isActive',
@@ -134,12 +139,38 @@ const RoomManagement: React.FC = () => {
         </Space>
       }
     >
+      <Space style={{ marginBottom: 16 }}>
+        <Input.Search
+          allowClear
+          enterButton={<SearchOutlined />}
+          placeholder="Tìm theo tên hoặc mã phòng"
+          style={{ width: 320 }}
+          value={searchText}
+          onChange={(event) => {
+            const value = event.target.value;
+            setSearchText(value);
+            if (!value) {
+              handleSearch('');
+            }
+          }}
+          onSearch={handleSearch}
+        />
+      </Space>
+
       <Table
         columns={columns}
         dataSource={rooms}
         rowKey="id"
         loading={loading}
-        pagination={{ pageSize: 8 }}
+        pagination={{
+          current: page + 1,
+          pageSize: size,
+          total,
+          onChange: (page, pageSize) => {
+            setPage(page - 1);
+            setSize(pageSize);
+          },
+        }}
       />
 
       <Modal

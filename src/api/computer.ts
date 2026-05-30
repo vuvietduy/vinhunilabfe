@@ -15,6 +15,7 @@ export interface Computer {
 
 export const computerApi = {
   getAll: () => axiosClient.get<Computer[]>('/admin/computers/findAll'),
+  search: (params?: any) => axiosClient.get(`/admin/computers/search`, { params }),
   create: (data: Partial<Computer>) => axiosClient.post<Computer>('/admin/computers/create', data),
   update: (id: number, data: Partial<Computer>) => axiosClient.put<Computer>(`/admin/computers/update?id=${id}`, data),
   delete: (id: number) => axiosClient.delete(`/admin/computers/delete?id=${id}`),

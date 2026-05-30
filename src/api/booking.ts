@@ -19,6 +19,7 @@ export interface Booking {
 
 export const bookingApi = {
   getAll: () => axiosClient.get<Booking[]>('/bookings/findAll'),
+  search: (params?: any) => axiosClient.get<PageResponse<Booking>>('/bookings/search', { params }),
   getRecent: () => axiosClient.get<PageResponse<Booking>>('/bookings/recent'),
   getMine: () => axiosClient.get<Booking[]>('/bookings/mine'),
   create: (data: Partial<Booking>) => axiosClient.post<Booking>('/bookings/create', data),
