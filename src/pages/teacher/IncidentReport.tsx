@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Table, Button, Modal, Form, Input, Select,
-  Space, Card, Tag, Typography, message,
+  Card, Tag, message,
   Row,
   Col
 } from 'antd';
@@ -15,8 +15,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { incidentApi, type Incident, type Priority } from '../../api/incident';
 import { roomApi, type Room } from '../../api/room';
 import { computerApi, type Computer } from '../../api/computer';
-
-const { Title } = Typography;
+import { getApiErrorMessage, isFormValidationError } from '../../utils/apiError';
 
 const IncidentReport: React.FC = () => {
   const [form] = Form.useForm();
@@ -81,7 +80,11 @@ const IncidentReport: React.FC = () => {
       setIsModalOpen(false);
       fetchHistory();
     } catch (error) {
-      console.error("Validate/Submit failed:", error);
+      if (isFormValidationError(error)) {
+        return;
+      }
+
+      message.error(getApiErrorMessage(error, 'Gửi báo cáo sự cố thất bại'));
     } finally {
       setSubmitting(false);
     }
@@ -104,7 +107,7 @@ const IncidentReport: React.FC = () => {
       title: 'Vị trí',
       key: 'location',
       render: (_, record) => (
-        <span>{record.roomName} - <strong>{record.computerCode}</strong></span>
+        <span>{record.roomName} - <strong>{record.computer?.computerCode ?? record.computerId}</strong></span>
       )
     },
     {
@@ -127,9 +130,11 @@ const IncidentReport: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => (
-        <Tag color={status === 'RESOLVED' ? 'green' : 'gold'}>
-          {status === 'RESOLVED' ? 'ĐÃ XỬ LÝ' : 'ĐANG CHỜ'}
-        </Tag>
+        <>
+          {status === 'OPEN' && <Tag color="gold">ĐANG CHỜ</Tag>}
+          {status === 'IN_PROGRESS' && <Tag color="processing">ĐANG XỬ LÝ</Tag>}
+          {status === 'RESOLVED' && <Tag color="success">ĐÃ XỬ LÝ</Tag>}
+        </>
       )
     },
   ];

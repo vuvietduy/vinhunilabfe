@@ -2,9 +2,24 @@ import axiosClient from './axiosClient';
 
 export interface TeacherStats {
   totalRooms: number;
-  activeComputers: number;
-  pendingIncidents: number;
+  openIncidents: number;
+  totalIncidents?: number;
+  resolvedIncidents?: number;
+  inProgressIncidents?: number;
   myClassesToday: number;
+  totalBookings?: number;
+  approvedBookings?: number;
+  pendingBookings?: number;
+  incidentStatusData?: { type: string; value: number }[];
+  recentIncidentData?: {
+    id?: number | string;
+    roomname?: string;
+    pc?: string;
+    computercode?: string;
+    status?: string;
+    description?: string;
+    priority?: string;
+  }[];
 }
 
 export interface AdminStats {

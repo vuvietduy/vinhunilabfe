@@ -3,6 +3,7 @@ import { Table, Button, Modal, Form, Input, InputNumber, Space, Popconfirm, mess
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { roomApi, type Room } from '../../api/room';
+import { getApiErrorMessage, isFormValidationError } from '../../utils/apiError';
 
 const buildRoomFilter = (keyword: string) => {
   const value = keyword.trim();
@@ -69,7 +70,11 @@ const RoomManagement: React.FC = () => {
       setIsModalOpen(false);
       fetchRooms(); // Load lại bảng
     } catch (error) {
-      console.error('Submit failed:', error);
+      if (isFormValidationError(error)) {
+        return;
+      }
+
+      message.error(getApiErrorMessage(error, 'Lưu phòng máy thất bại'));
     }
   };
 
@@ -191,7 +196,7 @@ const RoomManagement: React.FC = () => {
           <Form.Item name="location" label="Vị trí (Tòa/Tầng)" rules={[{ required: true, message: 'Nhập vị trí!' }]}>
             <Input placeholder="Ví dụ: Tầng 2 - Nhà A" />
           </Form.Item>
-          <Form.Item name="totalSeats" label="Số lượng máy">
+          <Form.Item name="totalSeats" label="Số lượng ghế">
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="isActive" label="Trạng thái" valuePropName="checked">

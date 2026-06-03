@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Space, Popconfirm, message, Card, Tag } from 'antd';
-import { UserAddOutlined, EditOutlined, DeleteOutlined, UserOutlined, MailOutlined } from '@ant-design/icons';
+import { UserAddOutlined, EditOutlined, DeleteOutlined, UserOutlined, MailOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { userApi, type User, type UserRole } from '../../api/user';
+import { getApiErrorMessage, isFormValidationError } from '../../utils/apiError';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -10,12 +11,23 @@ const UserManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [form] = Form.useForm();
+  const [page, setPage] = useState(0);
+  const [filter, setFilter] = useState("id!=0");
+  const [size, setSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [searchText, setSearchText] = useState('');
 
   const fetchUsers = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const response = await userApi.getAll();
-      setUsers(response.data);
+      const response = await userApi.search({
+        page,
+        size,
+        filter,
+        sort: ['id,desc']
+      });
+      setUsers(response.data.content);
+      setTotal(response.data.totalElements);
     } catch (error) {
       message.error('Không thể tải danh sách người dùng');
     } finally {
@@ -23,7 +35,7 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => { fetchUsers(); }, [size, page, filter]);
 
   const handleOk = async () => {
     try {
@@ -37,8 +49,12 @@ const UserManagement: React.FC = () => {
       }
       setIsModalOpen(false);
       fetchUsers();
-    } catch (error: any) {
-      message.error(error.response?.data?.message || 'Có lỗi xảy ra');
+    } catch (error) {
+      if (isFormValidationError(error)) {
+        return;
+      }
+
+      message.error(getApiErrorMessage(error));
     }
   };
 
@@ -53,7 +69,7 @@ const UserManagement: React.FC = () => {
       title: 'STT',
       key: 'index',
       width: 70,
-      render: (_value, _record, index) => index + 1,
+      render: (_value, _record, index) => (page * size) + index + 1,
     },
     {
       title: 'Tên đăng nhập',
@@ -95,6 +111,20 @@ const UserManagement: React.FC = () => {
     },
   ];
 
+  const handleSearch = (value: string) => {
+    setPage(0);
+    setFilter(buildUserFilter(value));
+  };
+
+  const buildUserFilter = (keyword: string) => {
+    const value = keyword.trim();
+    if (!value) return 'id!=0';
+
+    const escapedValue = value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return `(username=='*${escapedValue}*',fullName=='*${escapedValue}*')`;
+  };
+
+
   return (
     <Card
       style={{ margin: '16px 16px' }}
@@ -109,12 +139,37 @@ const UserManagement: React.FC = () => {
         </Button>
       }
     >
+      <Space style={{ marginBottom: 16 }}>
+        <Input.Search
+          allowClear
+          enterButton={<SearchOutlined />}
+          placeholder="Tìm theo tên hoặc mã người dùng"
+          style={{ width: 320 }}
+          value={searchText}
+          onChange={(event) => {
+            const value = event.target.value;
+            setSearchText(value);
+            if (!value) {
+              handleSearch('');
+            }
+          }}
+          onSearch={handleSearch}
+        />
+      </Space>
       <Table
         columns={columns}
         dataSource={users}
         rowKey="id"
         loading={loading}
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          current: page + 1,
+          pageSize: size,
+          total,
+          onChange: (page, pageSize) => {
+            setPage(page - 1);
+            setSize(pageSize);
+          },
+        }}
       />
 
       <Modal

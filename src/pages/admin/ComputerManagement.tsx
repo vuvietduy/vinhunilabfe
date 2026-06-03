@@ -4,6 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, DesktopOutlined } from '@an
 import type { ColumnsType } from 'antd/es/table';
 import { computerApi, type Computer, type ComputerStatus } from '../../api/computer';
 import { roomApi, type Room } from '../../api/room';
+import { getApiErrorMessage, isFormValidationError } from '../../utils/apiError';
 
 const ComputerManagement: React.FC = () => {
   const [computers, setComputers] = useState<Computer[]>([]);
@@ -16,6 +17,8 @@ const ComputerManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingComputer, setEditingComputer] = useState<Computer | null>(null);
   const [form] = Form.useForm();
+  const [computerCode, setComputerCode] = useState('');
+  const [roomId] = useState<number | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -49,7 +52,13 @@ const ComputerManagement: React.FC = () => {
       }
       setIsModalOpen(false);
       fetchData();
-    } catch (error) { console.error(error); }
+    } catch (error) {
+      if (isFormValidationError(error)) {
+        return;
+      }
+
+      message.error(getApiErrorMessage(error, 'Lưu máy tính thất bại'));
+    }
   };
 
   const statusColors = {
@@ -106,12 +115,60 @@ const ComputerManagement: React.FC = () => {
     },
   ];
 
+  const handleSearch = () => {
+    setPage(0);
+    setFilter(buildComputerFilter());
+  };
+
+  const buildComputerFilter = () => {
+    let filter = '(id!=0';
+    if (computerCode) {
+      filter += `;computerCode=='*${computerCode}*'`;
+    }
+    if (roomId !== null) {
+      filter += `;room.id==${roomId}`;
+    }
+    filter += ')';
+    return filter;
+  };
+
+
   return (
     <Card
       style={{ margin: '16px 16px' }}
       title={<span><DesktopOutlined /> Quản lý máy tính</span>}
       extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingComputer(null); form.resetFields(); setIsModalOpen(true); }}>Thêm máy</Button>}
     >
+      <Space style={{ marginBottom: 16 }}>
+        <Input
+          allowClear
+          placeholder="Tìm theo mã máy"
+          style={{ width: 320 }}
+          value={computerCode}
+          onChange={(event) => {
+            const value = event.target.value;
+            setComputerCode(value);
+            if (!value) {
+              handleSearch();
+            }
+          }}
+        />
+        {/* <Select
+          style={{ width: 200 }}
+          placeholder="Lọc theo phòng"
+          allowClear
+          value={roomId}
+          onChange={(value) => {
+            setRoomId(value);
+            setFilter(buildComputerFilter());
+          }}
+        >
+          {rooms.map(room => (
+            <Select.Option key={room.id} value={room.id}>{room.roomName}</Select.Option>
+          ))}
+        </Select> */}
+        <Button onClick={handleSearch}>Tìm kiếm</Button>
+      </Space>
       <Table
         columns={columns}
         dataSource={computers}
